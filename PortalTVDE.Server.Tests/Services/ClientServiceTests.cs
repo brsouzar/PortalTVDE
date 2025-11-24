@@ -32,14 +32,23 @@ public class ClientServiceTests
         // Popula o banco de dados em memória
         dbContext.Clients.AddRange(new List<Clientt> // Assumindo que seu modelo é Clientt
         {
-            new Clientt { Id = 1, Name = "Alice Smith", Email = "alice@test.com", NIF = "123456789" },
-            new Clientt { Id = 2, Name = "Bob Johnson", Email = "bob@test.com", NIF = "987654321" },
-            new Clientt { Id = 3, Name = "Carl Smith", Email = "carl@test.com", NIF = "111222333" },
+            new Clientt { Id = 1, Name = "Alice Smith", Email = "alice@test.com", 
+                NIF = "123456789", BirthDate = new DateTime(1995, 7, 15),
+                RowVersion = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 }
+         },
+            new Clientt { Id = 2, Name = "Bob Johnson", Email = "bob@test.com",
+                NIF = "987654321", BirthDate = new DateTime(1985, 5, 15),
+                RowVersion = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 }
+       },
+            new Clientt { Id = 3, Name = "Carl Smith", Email = "carl@test.com", 
+                NIF = "111222333" , BirthDate = new DateTime(1990, 1, 1),
+                RowVersion = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 }
+        },
         });
         await dbContext.SaveChangesAsync();
 
         var service = new ClientService(dbContext);
-        var query = new ClientQueryDto { Name = "Smith", Page = 1, PageSize = 10 };
+        var query = new ClientQueryDto { Name = "Smith", Email = "", Page = 1, PageSize = 10 };
 
         // ACT
         var result = await service.GetClientsAsync(query);
@@ -60,7 +69,7 @@ public class ClientServiceTests
         using var dbContext = GetDbContext(dbName);
 
         // Adiciona um cliente que esperamos encontrar
-        var expectedClient = new Clientt { Id = 10, Name = "Test User", Email = "test@user.com", NIF = "100000000" };
+        var expectedClient = new Clientt { Id = 10, Name = "Test User", Email = "test@user.com", NIF = "100000000", BirthDate = new DateTime(2000, 10, 20), RowVersion = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 } };
         dbContext.Clients.Add(expectedClient);
         await dbContext.SaveChangesAsync();
 

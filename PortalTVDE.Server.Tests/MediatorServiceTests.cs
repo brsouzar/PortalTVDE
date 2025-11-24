@@ -24,17 +24,37 @@ namespace PortalTVDE.Server.Tests.Services
             dbContext.Database.EnsureDeleted();
             dbContext.Database.EnsureCreated();
 
-            // DADOS DE TESTE AJUSTADOS USANDO CONSTANTES (OU ENUM)
+           
             var mediators = new List<Mediator>
             {
                 // Tier Bronze (1)
-                new Mediator { Id = 1, Name = "Alpha Mediator", Email = "alpha@tvde.pt", Tier = Shared.Enums.MediatorTier.Bronze, CommissionRate = 0.10m },
+                new Mediator { Id = 1, Name = "Alpha Mediator", 
+                    Email = "alpha@tvde.pt", 
+                    Tier = Shared.Enums.MediatorTier.Bronze, 
+                    CommissionRate = 0.10m,
+                    IsDeleted = false,
+                    RowVersion = new byte[] { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 }},
                 // Tier Silver (2)
-                new Mediator { Id = 2, Name = "Beta Broker", Email = "beta@tvde.pt", Tier = Shared.Enums.MediatorTier.Silver, CommissionRate = 0.15m },
+                new Mediator { Id = 2, Name = "Beta Broker",
+                    Email = "beta@tvde.pt", 
+                    Tier = Shared.Enums.MediatorTier.Silver, 
+                    CommissionRate = 0.15m, 
+                    IsDeleted = false,
+                    RowVersion = new byte[] { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 } },
                 // Tier Bronze (1)
-                new Mediator { Id = 3, Name = "Gamma Agent", Email = "gamma@tvde.pt", Tier = Shared.Enums.MediatorTier.Bronze, CommissionRate = 0.12m },
+                new Mediator { Id = 3, Name = "Gamma Agent", 
+                    Email = "gamma@tvde.pt", 
+                    Tier = Shared.Enums.MediatorTier.Bronze,
+                    IsDeleted = false,
+                    CommissionRate = 0.12m,
+                    RowVersion = new byte[] { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 }},
                 // Tier Gold (3)
-                new Mediator { Id = 4, Name = "Delta Broker", Email = "delta@tvde.pt", Tier = Shared.Enums.MediatorTier.Gold, CommissionRate = 0.20m }
+                new Mediator { Id = 4, Name = "Delta Broker", 
+                    Email = "delta@tvde.pt", 
+                    Tier = Shared.Enums.MediatorTier.Gold, 
+                    CommissionRate = 0.20m,
+                    IsDeleted = false,
+                    RowVersion = new byte[] { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 }}
             };
 
             dbContext.Mediators.AddRange(mediators);
@@ -122,8 +142,8 @@ namespace PortalTVDE.Server.Tests.Services
             {
                 Name = "New Guy",
                 Email = "new@test.pt",
-                Tier = Shared.Enums.MediatorTier.Gold, // **AJUSTADO**: Usando valor válido do enum (3)
-                CommissionRate = 0.30m
+                Tier = Shared.Enums.MediatorTier.Gold, 
+                CommissionRate = 0.30m,               
             };
 
             // ACT
@@ -136,7 +156,7 @@ namespace PortalTVDE.Server.Tests.Services
             // 2. Verifica se o item foi realmente salvo no banco de dados com o Tier correto
             var savedMediator = await dbContext.Mediators.FindAsync(resultDto.Id);
             Assert.NotNull(savedMediator);
-            Assert.Equal(Shared.Enums.MediatorTier.Gold, savedMediator.Tier); // **AJUSTADO**: Verifica Tier Gold
+            Assert.Equal(Shared.Enums.MediatorTier.Gold, savedMediator.Tier); 
         }
 
         // ====================================================================
@@ -155,7 +175,7 @@ namespace PortalTVDE.Server.Tests.Services
             var updateDto = new MediatorUpdateDto
             {
                 Id = 1,
-                Tier = Shared.Enums.MediatorTier.Gold, // **AJUSTADO**: Usando Gold (3)
+                Tier = Shared.Enums.MediatorTier.Gold,
                 CommissionRate = 0.50m
             };
 
@@ -175,6 +195,6 @@ namespace PortalTVDE.Server.Tests.Services
             Assert.Equal(0.50m, updatedMediator.CommissionRate);
         }
 
-        // ... (UpdateAsync_ShouldThrowKeyNotFoundException - Sem alterações, pois não usa Tier) ...
+        
     }
 }

@@ -22,9 +22,9 @@ namespace PortalTVDE.Server.Services
             var q = _db.Clients.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(query.Name))
-                q = q.Where(c => c.Name.Contains(query.Name) || c.Email.Contains(query.Email));
+                q = q.Where(c => c.Name.Contains(query.Name)); 
 
-           if (!string.IsNullOrWhiteSpace(query.Email))
+            if (!string.IsNullOrWhiteSpace(query.Email))
                 q = q.Where(c => c.Email.Contains(query.Email));
 
             if (!string.IsNullOrWhiteSpace(query.NIF))

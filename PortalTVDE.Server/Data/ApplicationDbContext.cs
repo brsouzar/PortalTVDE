@@ -34,11 +34,24 @@ namespace PortalTVDE.Server.Data
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<ApplicationUser>()
-            .HasOne(u => u.Mediator) 
-            .WithMany(m => m.Users) 
+            .HasOne(u => u.Mediator)
+            .WithMany(m => m.Users)
             .HasForeignKey(u => u.MediatorId) // A FK é o MediatorId
             .IsRequired(false) // Permite que MediatorId seja nulo
             .OnDelete(DeleteBehavior.Restrict); // Evita a deleção em cascata (opcional, mas boa prática)
+
+
+
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+                {
+                    modelBuilder.Entity(entityType.ClrType)
+                        .Property("RowVersion")
+                        .IsRowVersion()
+                        .ValueGeneratedOnAddOrUpdate();
+                }
+            }
 
             // Configurações e Índices Únicos (Unique Indexes)
 
