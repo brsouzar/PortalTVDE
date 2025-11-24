@@ -1,0 +1,236 @@
+﻿@page "/quotes"
+@using Microsoft.AspNetCore.Components.Authorization
+@using PortalTVDE.Client.Services.Interfaces
+@using PortalTVDE.Shared.ModelsDTOs
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IClientClientService ClientService
+@inject IQuoteClientService QuoteService
+@inject IVehicleClientService VehicleService // NOVO: Injeção do serviço de veículos
+@inject NavigationManager Nav
+
+
+<div class="quote-container">
+    <div class="quote-box">
+        <h3 class="text-center mb-4">Nova Cotação</h3>
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert alert-danger text-center">@message</div>
+        }
+
+        <div class="form-group mb-3 d-flex align-items-end">
+            <div class="flex-grow-1 me-2">
+                <label>Pesquisar Cliente</label>
+                <input class="form-control" @bind="clientSearch" placeholder="Nome ou email" />
+            </div>
+            <button class="btn btn-primary" @onclick="SearchClients">Buscar</button>
+        </div>
+
+        @if (clients?.Any() == true)
+        {
+            <div class="form-group mb-3">
+                <label>Selecione Cliente</label>
+                <select class="form-select" @bind="selectedClientId">
+                    <option value="">--Selecione--</option>
+                    @foreach (var c in clients)
+                    {
+                        <option value="@c.Id">@c.Name (@c.Email)</option>
+                    }
+                </select>
+            </div>
+        }
+
+        <hr class="mb-4" />
+
+        @* SUBSTITUÍDO: INPUT DE VEÍCULO ID POR SELECT DROPDOWN *@
+        <div class="form-group mb-3">
+            <label>Selecione Veículo</label>
+            <select class="form-select" @bind="selectedVehicleId">
+                <option value="">--Selecione o Veículo--</option>
+                @if (vehicles?.Any() == true)
+                {
+                    @foreach (var v in vehicles)
+                    {
+                        @* Exibe a Placa e o Modelo, usa o Id como valor *@
+                        <option value="@v.Id">@v.LicensePlate - @v.Make @v.Model</option>
+                    }
+                }
+            </select>
+        </div>
+
+        @* REMOVIDO: Antigo input de Veículo ID *@
+
+        <div class="form-group mb-3">
+            <label>Cidade</label>
+            <input class="form-control" @bind="city" />
+        </div>
+
+        <div class="form-group mb-3">
+            <label>NCB Years (Anos Sem Sinistro)</label>
+            <input class="form-control" @bind="ncbYears" type="number" />
+        </div>
+
+        <div class="form-check mb-2">
+            <input type="checkbox" class="form-check-input" id="includeGlass" @bind="includeGlass" />
+            <label class="form-check-label" for="includeGlass">Cobertura Vidros</label>
+        </div>
+        <div class="form-check mb-4">
+            <input type="checkbox" class="form-check-input" id="includeRoadside" @bind="includeRoadside" />
+            <label class="form-check-label" for="includeRoadside">Assistência em Viagem</label>
+        </div>
+
+        <button class="btn btn-primary w-100 mb-4"
+                @onclick="CalculateQuote"
+                disabled="@(!selectedClientId.HasValue || selectedClientId == 0 || !selectedVehicleId.HasValue || selectedVehicleId == 0)">
+            Calcular Cotação
+        </button>
+
+        @if (quote != null)
+        {
+            <hr />
+            <h4 class="mt-3">Resultado da Cotação</h4>
+            <p class="h5 text-success">Total: **€@quote.Breakdown.Total**</p>
+
+            <button class="btn btn-success w-100 mb-3" @onclick="BindQuote">Emitir Apólice</button>
+
+            <h5 class="mt-3">Coberturas</h5>
+            <ul class="list-group">
+                @foreach (var item in quote.Breakdown.CoverageItems)
+                {
+                    <li class="list-group-item">@item</li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+<style>
+    .quote-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 80vh;
+        padding-top: 50px;
+    }
+
+    .quote-box {
+        width: 450px;
+        padding: 25px;
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: rgba(0,0,0,0.15) 0px 4px 12px;
+    }
+</style>
+
+@code {
+    // Inputs
+    string clientSearch = "";
+    List<ClientDtoWithId>? clients;
+    int? selectedClientId;
+
+    // VARIÁVEIS DO VEÍCULO
+    List<VehicleDto> vehicles = new(); // Lista para armazenar os veículos
+    int? selectedVehicleId;           
+
+    string city = "Lisboa";
+    bool includeGlass;
+    bool includeRoadside;
+    int ncbYears;
+
+    string message;
+    QuotePricedDto? quote;
+    int? loggedInMediatorId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Obter o ID do Mediador logado
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var mediatorIdClaim = user.Claims.FirstOrDefault(c => c.Type == "MediatorId")?.Value;
+
+            if (!string.IsNullOrEmpty(mediatorIdClaim) && int.TryParse(mediatorIdClaim, out int mediatorId))
+            {
+                loggedInMediatorId = mediatorId;
+            }
+        }
+
+        // 2. CARREGAR VEÍCULOS
+        try
+        {
+            
+            vehicles = await VehicleService.GetAllSimpleVehiclesAsync();
+        }
+        catch (Exception ex)
+        {
+            message = $"Erro ao carregar veículos: {ex.Message}";
+        }
+    }
+
+    async Task SearchClients()
+    {
+        var result = await ClientService.GetClientsAsync(new ClientQueryDto
+        {
+            Name = clientSearch,
+            Email = clientSearch,
+            Page = 1,
+            PageSize = 10
+        });
+
+        clients = result?.Items ?? new();
+        selectedClientId = null;
+    }
+
+    async Task CalculateQuote()
+    {
+        message = "";
+        if (!selectedClientId.HasValue || selectedClientId == 0)
+        {
+            message = "Selecione um cliente válido.";
+            return;
+        }
+
+       if (!selectedVehicleId.HasValue || selectedVehicleId == 0)
+        {
+            message = "Selecione um veículo válido.";
+            return;
+        }
+
+        var req = new QuotePriceRequestDto
+        {
+            ClientId = selectedClientId ?? 0,
+            VehicleId = selectedVehicleId.Value, // Usa o ID do veículo selecionado
+            City = city,
+            NcbYears = ncbYears,
+            IncludeGlass = includeGlass,
+            IncludeRoadside = includeRoadside
+        };
+
+        quote = await QuoteService.PriceQuoteAsync(req);
+    }
+
+    async Task BindQuote()
+    {
+        if (quote == null)
+            return;
+
+        var bindRequest = new QuoteBindRequestDto
+        {
+            QuoteId = quote.Id,
+            MediatorId = loggedInMediatorId ?? 1002
+        };
+
+        try
+        {
+            var result = await QuoteService.BindQuoteAsync(bindRequest);
+            Nav.NavigateTo($"/policy/{result.PolicyId}");
+        }
+        catch (ApplicationException ex)
+        {
+            message = $"Erro ao emitir apólice: {ex.Message}";
+        }
+    }
+}

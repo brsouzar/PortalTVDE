@@ -1,0 +1,58 @@
+﻿@page "/policies"
+@using PortalTVDE.Client.Services.Interfaces
+@using PortalTVDE.Shared.ModelsDTOs
+@inject IPolicyClientService PolicyService
+@inject NavigationManager Nav
+
+<h3>Apólices Emitidas</h3>
+
+@if (policies == null)
+{
+    <p>Carregando...</p>
+}
+else if (!policies.Any())
+{
+    <p>Nenhuma apólice encontrada.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Número</th>
+                <th>Início</th>
+                <th>Fim</th>
+                <th>Prémio</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in policies)
+            {
+                <tr>
+                    <td>@p.Id</td>
+                    <td>@p.PolicyNumber</td>
+                    <td>@p.EffectiveFrom.ToShortDateString()</td>
+                    <td>@p.EffectiveTo.ToShortDateString()</td>
+                    <td>€@p.TotalPremium</td>
+                    <td>
+                        <button class="btn btn-primary"
+                                @onclick="@(() => Nav.NavigateTo($"/policy/{p.Id}"))">
+                            Ver
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    List<PolicyDto>? policies;
+
+    protected override async Task OnInitializedAsync()
+    {
+        policies = await PolicyService.GetAllPoliciesAsync();
+    }
+}

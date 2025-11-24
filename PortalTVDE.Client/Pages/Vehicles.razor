@@ -1,0 +1,200 @@
+﻿@page "/vehicles"
+@using PortalTVDE.Client.Services.Interfaces
+@using PortalTVDE.Shared.ModelsDTOs
+@inject IVehicleClientService VehicleService
+
+<div class="content-box">
+    <h2 class="mb-4">Gestão de Veículos</h2>
+
+    <div class="mb-4 d-flex gap-2">
+        <input placeholder="Filtrar por matrícula" @bind="filterLicensePlate" class="form-control" />
+        <input placeholder="Filtrar por marca" @bind="filterMake" class="form-control" />
+        <input placeholder="Filtrar por modelo" @bind="filterModel" class="form-control" />
+        <button class="btn btn-primary" @onclick="LoadVehicles">Filtrar</button>
+    </div>
+
+    <div class="table-responsive mb-4">
+        <table class="table table-striped table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Matrícula</th>
+                    <th>Marca</th>
+                    <th>Modelo</th>
+                    <th>Potência (KW)</th>
+                    <th>Ano</th>
+                    <th>Uso</th>
+                    <th style="width: 150px;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in vehicles)
+                {
+                    <tr>
+                        <td>@v.Id</td>
+                        <td>@v.LicensePlate</td>
+                        <td>@v.Make</td>
+                        <td>@v.Model</td>
+                        <td>@v.PowerKW</td>
+                        <td>@v.Year</td>
+                        <td>@v.Usage</td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-warning btn-sm" @onclick="() => EditVehicle(v)">Editar</button>
+                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteVehicle(v.Id)">Apagar</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4 d-flex gap-2 align-items-center">
+        <button class="btn btn-outline-secondary" @onclick="PreviousPage" disabled="@(!CanPrevious)">Anterior</button>
+        <span class="text-secondary">Página @currentPage / @TotalPages</span>
+        <button class="btn btn-outline-secondary" @onclick="NextPage" disabled="@(!CanNext)">Próxima</button>
+    </div>
+
+    <hr class="my-4" />
+
+    <h3 class="mb-3">@((editingVehicle != null) ? "Editar Veículo" : "Adicionar Veículo")</h3>
+
+    <div class="form-section">
+        <div class="form-group mb-3">
+            <input placeholder="Matrícula" @bind="newVehicle.LicensePlate" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <input placeholder="Marca" @bind="newVehicle.Make" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <input placeholder="Modelo" @bind="newVehicle.Model" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <input type="number" placeholder="Potência (KW)" @bind="newVehicle.PowerKW" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <input type="number" placeholder="Ano" @bind="newVehicle.Year" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <input placeholder="Uso" @bind="newVehicle.Usage" class="form-control" disabled />
+        </div>
+
+        <button class="btn btn-success w-100" @onclick="SaveVehicle">
+            @((editingVehicle != null) ? "Atualizar" : "Adicionar")
+        </button>
+
+        @if (editingVehicle != null)
+        {
+            <button class="btn btn-secondary w-100 mt-2" @onclick="CancelEdit">Cancelar</button>
+        }
+    </div>
+</div>
+
+<style>
+    /* Estilo para a caixa de formulário de Adição/Edição, copiado de Clients.razor */
+    .form-section {
+        max-width: 450px;
+        padding: 25px;
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: rgba(0,0,0,0.15) 0px 4px 12px;
+        margin-top: 20px;
+    }
+</style>
+
+@code {
+    private List<VehicleDto> vehicles = new();
+    private VehicleCreateDto newVehicle = new();
+    private VehicleDto? editingVehicle = null;
+
+    private string? filterLicensePlate;
+    private string? filterMake;
+    private string? filterModel;
+
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVehicles();
+    }
+
+    private async Task LoadVehicles()
+    {
+        var query = new VehicleQueryDto
+        {
+            LicensePlate = filterLicensePlate,
+            Make = filterMake,
+            Model = filterModel,
+            Page = currentPage,
+            PageSize = pageSize
+        };
+
+        var result = await VehicleService.GetVehiclesAsync(query);
+        vehicles = result.Items.ToList();
+        totalCount = result.TotalCount;
+    }
+
+    private int TotalPages => (int)Math.Ceiling((double)totalCount / pageSize);
+    private bool CanPrevious => currentPage > 1;
+    private bool CanNext => currentPage < TotalPages;
+
+    private async Task PreviousPage()
+    {
+        if (CanPrevious) currentPage--;
+        await LoadVehicles();
+    }
+
+    private async Task NextPage()
+    {
+        if (CanNext) currentPage++;
+        await LoadVehicles();
+    }
+
+    private void EditVehicle(VehicleDto v)
+    {
+        editingVehicle = v;
+        newVehicle = new VehicleCreateDto
+        {
+            LicensePlate = v.LicensePlate,
+            Make = v.Make,
+            Model = v.Model,
+            PowerKW = v.PowerKW,
+            Year = v.Year,
+            Usage = v.Usage
+        };
+    }
+
+    // Método adicionado para consistência com a página Clients
+    private void CancelEdit()
+    {
+        editingVehicle = null;
+        newVehicle = new VehicleCreateDto();
+    }
+
+
+    private async Task SaveVehicle()
+    {
+        if (editingVehicle != null)
+        {
+            await VehicleService.UpdateVehicleAsync(editingVehicle.Id, newVehicle);
+            editingVehicle = null;
+        }
+        else
+        {
+            await VehicleService.CreateVehicleAsync(newVehicle);
+        }
+
+        newVehicle = new VehicleCreateDto();
+        currentPage = 1;
+        await LoadVehicles();
+    }
+
+    private async Task DeleteVehicle(int id)
+    {
+        await VehicleService.DeleteVehicleAsync(id);
+        await LoadVehicles();
+    }
+}

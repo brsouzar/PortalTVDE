@@ -1,0 +1,36 @@
+﻿@page "/policy/{id:int}"
+@using PortalTVDE.Client.Services.Interfaces
+@using PortalTVDE.Shared.ModelsDTOs
+@inject IPolicyClientService PolicyService
+@inject NavigationManager Nav
+
+<h3>Detalhes da Apólice</h3>
+
+@if (policy == null)
+{
+    <p>Carregando...</p>
+}
+else
+{
+    <div class="card p-3">
+        <p><b>ID:</b> @policy.Id</p>
+        <p><b>Número:</b> @policy.PolicyNumber</p>
+        <p><b>Vigência:</b> @policy.EffectiveFrom.ToShortDateString() - @policy.EffectiveTo.ToShortDateString()</p>
+        <p><b>Prémio Total:</b> €@policy.TotalPremium</p>
+        <p><b>Comissão:</b> €@policy.Commission</p>
+    </div>
+
+    <button class="btn btn-secondary mt-3" @onclick="@(() => Nav.NavigateTo("/policies"))">
+        Voltar
+    </button>
+}
+
+@code {
+    [Parameter] public int id { get; set; }
+    PolicyDto? policy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        policy = await PolicyService.GetPolicyByIdAsync(id);
+    }
+}
