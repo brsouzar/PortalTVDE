@@ -172,16 +172,29 @@
 
     async Task SearchClients()
     {
-        var result = await ClientService.GetClientsAsync(new ClientQueryDto
+        var query =new ClientQueryDto
         {
             Name = clientSearch,
             Email = clientSearch,
             Page = 1,
             PageSize = 10
-        });
+        };
+
+        var result = await ClientService.GetClientsAsync(query);
 
         clients = result?.Items ?? new();
+        // (Opcional): Adicione uma mensagem se não houver resultados.
+        if (clients.Count == 0 && !string.IsNullOrWhiteSpace(clientSearch))
+        {
+            message = "Nenhum cliente encontrado com os critérios de busca.";
+        }
+        else
+        {
+            message = null;
+        }
         selectedClientId = null;
+
+        StateHasChanged();
     }
 
     async Task CalculateQuote()

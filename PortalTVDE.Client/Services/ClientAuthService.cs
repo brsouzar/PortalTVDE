@@ -63,10 +63,7 @@ namespace PortalTVDE.Client.Services
                 ((CustomAuthStateProvider)_authenticationStateProvider)
                     .MarkUserAsAuthenticated(loginResponse.Token);
 
-                // Configura cabeçalho do HttpClient
-                _httpClient.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", loginResponse.Token);
-
+                
                 return new LoginResult { Successful = true, UserInfo = loginResponse };
             }
 

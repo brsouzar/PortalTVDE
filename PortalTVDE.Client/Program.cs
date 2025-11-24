@@ -28,6 +28,12 @@ builder.Services.AddScoped<IVehicleClientService, VehicleClientService>();
 builder.Services.AddScoped<IQuoteClientService, QuoteClientService>();
 builder.Services.AddScoped<IPolicyClientService, PolicyClientService>();
 
+builder.Services.AddScoped<AuthorizationHeaderHandler>();
+
+builder.Services.AddHttpClient("AuthenticatedAPI", client =>
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
+    .AddHttpMessageHandler<AuthorizationHeaderHandler>();
+
 
 builder.Services.AddOptions();
 builder.Services.AddAuthorizationCore();

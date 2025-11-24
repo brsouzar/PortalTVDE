@@ -10,9 +10,9 @@ namespace PortalTVDE.Client.Services
     {
         private readonly HttpClient _http;
 
-        public ClientClientService(HttpClient http)
+        public ClientClientService(IHttpClientFactory httpClientFactory)
         {
-            _http = http;
+            _http = httpClientFactory.CreateClient("AuthenticatedAPI");
         }
 
         // =======================================================================

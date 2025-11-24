@@ -49,7 +49,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("MyPolicy", builder =>
     {
-        builder.WithOrigins("http://localhost:3000");
+        builder.WithOrigins("http://localhost:7131");
         builder.WithMethods("GET", "POST", "PUT", "DELETE");
         builder.WithHeaders("Content-Type", "Accept");
     });
@@ -146,12 +146,7 @@ if (app.Environment.IsDevelopment())
     app.UseWebAssemblyDebugging();
     app.UseSwagger();
     app.UseSwaggerUI();
-    // Migrations automáticas (apenas para DEV/MVP)
-    //using (var scope = app.Services.CreateScope())
-    //{
-    //    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    //    db.Database.Migrate();
-    //}
+   
 }
 else
 {
@@ -170,6 +165,17 @@ app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseStatusCodePages(async context =>
+{
+    // Verifica se a requisição é para a API (que espera JSON)
+    if (context.HttpContext.Request.Path.StartsWithSegments("/api"))
+    {
+        context.HttpContext.Response.ContentType = "text/plain";
+        await context.HttpContext.Response.WriteAsync($"Status Code: {context.HttpContext.Response.StatusCode}");
+    }
+    // Para todas as outras requisições (do Blazor), o código de status será tratado normalmente.
+});
 app.MapHealthChecks("/health");
 
 app.UseAuthentication();
