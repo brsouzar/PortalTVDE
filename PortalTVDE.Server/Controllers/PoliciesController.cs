@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PortalTVDE.Server.Models;
 using PortalTVDE.Server.Services.Interfaces;
 using PortalTVDE.Shared.ModelsDTOs;
 
+//[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class PoliciesController : ControllerBase
