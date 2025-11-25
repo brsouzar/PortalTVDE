@@ -1,0 +1,177 @@
+﻿@page "/login"
+@using PortalTVDE.Client.Services.Interfaces
+@using PortalTVDE.Shared.ModelsDTOs
+@inject IClientAuthService AuthService
+@inject NavigationManager Nav
+
+<div class="login-container">
+    <div class="login-box">
+        <h3 class="text-center mb-4">Portal TVDE</h3>
+
+        <div class="d-flex mb-4">
+            <button class="btn @(isRegistering ? "btn-outline-primary" : "btn-primary") flex-grow-1"
+                    @onclick="() => isRegistering = false">
+                Entrar
+            </button>
+            <button class="btn @(isRegistering ? "btn-primary" : "btn-outline-primary") flex-grow-1 ms-2"
+                    @onclick="() => isRegistering = true">
+                Registar Novo
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger text-center">@errorMessage</div>
+        }
+
+        <div class="form-group mb-3">
+            <label>Email</label>
+            <input class="form-control" @bind="email" />
+        </div>
+
+        @if (isRegistering)
+        {
+            <div class="form-group mb-3">
+                <label>Nome de Utilizador (Opcional)</label>
+                <input class="form-control" @bind="userName" />
+            </div>
+
+            <div class="form-group mb-3">
+                <label>ID do Mediador (Obrigatório)</label>
+                <input class="form-control" type="number" @bind="mediatorIdInput" />
+            </div>
+        }
+
+        <div class="form-group mb-4">
+            <label>Password</label>
+            <input type="password" class="form-control" @bind="password" />
+        </div>
+
+        @if (isRegistering)
+        {
+            <button class="btn btn-success w-100" @onclick="DoRegister" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span>A Registar...</span>
+                }
+                else
+                {
+                    <span>Registar e Entrar</span>
+                }
+            </button>
+        }
+        else
+        {
+            <button class="btn btn-primary w-100" @onclick="DoLogin" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span>Entrando...</span>
+                }
+                else
+                {
+                    <span>Entrar</span>
+                }
+            </button>
+        }
+    </div>
+</div>
+
+<style>
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 80vh;
+    }
+
+    .login-box {
+        width: 400px; /* Aumentei ligeiramente a largura para caber os novos campos */
+        padding: 25px;
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: rgba(0,0,0,0.15) 0px 4px 12px;
+    }
+    /* Estilo para dar um efeito mais "tab" aos botões */
+    .btn-outline-primary {
+        background-color: #f8f9fa;
+    }
+</style>
+
+@code {
+    private bool isRegistering = false; // Estado para alternar entre Login e Registro
+    private string email = "";
+    private string password = "";
+    private string userName = ""; // Novo campo
+    private string mediatorIdInput = ""; // Captura como string para evitar erros de parsing
+    private string? errorMessage;
+    private bool isLoading = false;
+
+    private async Task DoLogin()
+    {
+        errorMessage = null;
+        isLoading = true;
+
+        var result = await AuthService.Login(new LoginRequestDto
+        {
+            Email = email,
+            Password = password
+        });
+
+        isLoading = false;
+
+        if (!result.Successful)
+        {
+            errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        Nav.NavigateTo("/quotes", true);
+    }
+
+    private async Task DoRegister()
+    {
+        errorMessage = null;
+        isLoading = true;
+        int? mediatorId = null;
+
+        // Validação básica do MediatorId
+        if (!string.IsNullOrWhiteSpace(mediatorIdInput) && int.TryParse(mediatorIdInput, out int id))
+        {
+            mediatorId = id;
+        }
+        else if (string.IsNullOrWhiteSpace(mediatorIdInput))
+        {
+            // O MediatorId não pode ser nulo para registro de Partner/Driver
+            errorMessage = "O ID do Mediador é obrigatório para o registo.";
+            isLoading = false;
+            return;
+        }
+
+        // Simples verificação de campos (Password e Email serão validados pelo backend)
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Email e Password são obrigatórios.";
+            isLoading = false;
+            return;
+        }
+
+        var result = await AuthService.Register(new RegisterRequestDto
+        {
+            Email = email,
+            Password = password,
+            UserName = string.IsNullOrWhiteSpace(userName) ? null : userName,
+            MediatorId = mediatorId
+        });
+
+        isLoading = false;
+
+        if (!result.Successful)
+        {
+            errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        // Registro OK (e login automático) → redireciona
+        Nav.NavigateTo("/quotes", true);
+    }
+}

@@ -1,0 +1,200 @@
+﻿@page "/clients"
+@inject IClientClientService ClientService
+@inject NavigationManager NavigationManager
+@using PortalTVDE.Client.Services.Interfaces
+@using PortalTVDE.Shared.ModelsDTOs
+
+<div class="content-box">
+    <h2 class="mb-4">Gestão de Clientes</h2>
+
+    <div class="mb-4 d-flex gap-2">
+        <input placeholder="Filtrar por nome" @bind="filterName" @bind:event="oninput" class="form-control" />
+        <input placeholder="Filtrar por email" @bind="filterEmail" @bind:event="oninput" class="form-control" />
+        <input placeholder="Filtrar por NIF" @bind="filterNIF" @bind:event="oninput" class="form-control" />
+        <button class="btn btn-primary" @onclick="LoadClients">Filtrar</button>
+    </div>
+
+    <div class="table-responsive mb-4">
+        <table class="table table-striped table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>NIF</th>
+                    <th>Nascimento</th>
+                    <th style="width: 150px;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in clients)
+                {
+                    <tr>
+                        <td>@c.Id</td>
+                        <td>@c.Name</td>
+                        <td>@c.Email</td>
+                        <td>@c.NIF</td>
+                        <td>@c.BirthDate.ToShortDateString()</td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-warning btn-sm" @onclick="() => EditClient(c)">Editar</button>
+                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteClient(c.Id)">Apagar</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4 d-flex gap-2 align-items-center">
+        <button class="btn btn-outline-secondary" @onclick="PreviousPage" disabled="@(!CanPrevious)">Anterior</button>
+        <span class="text-secondary">Página @pageNumber / @TotalPages</span>
+        <button class="btn btn-outline-secondary" @onclick="NextPage" disabled="@(!CanNext)">Próxima</button>
+    </div>
+
+    <hr class="my-4" />
+
+    <h3 class="mb-3">@((editClient != null) ? "Editar Cliente" : "Adicionar Cliente")</h3>
+    <div class="form-section">
+        <div class="form-group mb-3">
+            <input placeholder="Nome" @bind="newClient.Name" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <input placeholder="Email" type="email" @bind="newClient.Email" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <input placeholder="NIF (9 dígitos)" maxlength="9" @bind="newClient.NIF" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <input type="date" @bind="newClient.BirthDate" class="form-control" />
+        </div>
+
+        <button class="btn btn-success w-100" @onclick="SaveClient">
+            @((editClient != null) ? "Atualizar" : "Adicionar")
+        </button>
+
+        @if (editClient != null)
+        {
+            <button class="btn btn-secondary w-100 mt-2" @onclick="CancelEdit">Cancelar</button>
+        }
+    </div>
+</div>
+
+<style>
+    /* Opcional: Estilo para a caixa de formulário de Adição/Edição */
+    .form-section {
+        max-width: 450px; /* Limita a largura do formulário, como o quote-box */
+        padding: 25px;
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: rgba(0,0,0,0.15) 0px 4px 12px;
+        margin-top: 20px;
+    }
+</style>
+
+@code {
+    private List<ClientDtoWithId> clients = new();
+    private ClientDto newClient = new();
+    private ClientDtoWithId? editClient;
+    private int pageNumber = 1;
+    private int pageSize = 10;
+    private int totalCount;
+
+    private string? filterName;
+    private string? filterEmail;
+    private string? filterNIF;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadClients();
+    }
+
+    private async Task LoadClients()
+    {
+        var query = new ClientQueryDto
+        {
+            Page = pageNumber,
+            PageSize = pageSize,
+            Name = filterName,
+            Email = filterEmail,
+            NIF = filterNIF
+        };
+
+        try
+        {
+            // 1. Tenta carregar os dados
+            var result = await ClientService.GetClientsAsync(query);
+
+            if (result != null)
+            {
+                clients = result.Items;
+                totalCount = result.TotalCount;
+            }
+        }
+        // 2. Captura a exceção lançada pelo ClientService
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized || ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            // 3. SE o status for 401 (Unauthorized) ou 403 (Forbidden):
+            // Redireciona o usuário para a página de login/home, forçando um reload
+            // que limpa o estado de autenticação inválido.
+            Console.WriteLine("Erro de Autorização (401/403) detectado. Redirecionando.");
+            NavigationManager.NavigateTo("/", forceLoad: true);
+            
+        }
+        catch (Exception ex)
+        {
+            // Trata qualquer outro erro inesperado
+            Console.WriteLine($"Erro ao carregar clientes: {ex.Message}");
+            // Opcional: Implementar um mecanismo de notificação para o usuário (Toast/Snackbar)
+        }
+    }
+
+    private int TotalPages => (int)Math.Ceiling((double)totalCount / pageSize);
+    private bool CanPrevious => pageNumber > 1;
+    private bool CanNext => pageNumber < TotalPages;
+
+    private async Task PreviousPage() { if (CanPrevious) pageNumber--; await LoadClients(); }
+    private async Task NextPage() { if (CanNext) pageNumber++; await LoadClients(); }
+
+    private void EditClient(ClientDtoWithId c)
+    {
+        editClient = c;
+        newClient = new ClientDto
+        {
+            Name = c.Name,
+            Email = c.Email,
+            NIF = c.NIF,
+            BirthDate = c.BirthDate
+        };
+    }
+
+    private void CancelEdit()
+    {
+        editClient = null;
+        newClient = new ClientDto();
+    }
+
+    private async Task SaveClient()
+    {
+        if (editClient != null)
+        {
+            await ClientService.UpdateClientAsync(editClient.Id, newClient);
+            editClient = null;
+        }
+        else
+        {
+            await ClientService.CreateClientAsync(newClient);
+        }
+
+        newClient = new ClientDto();
+        pageNumber = 1;
+        await LoadClients();
+    }
+
+    private async Task DeleteClient(int id)
+    {
+        await ClientService.DeleteClientAsync(id);
+        await LoadClients();
+    }
+}

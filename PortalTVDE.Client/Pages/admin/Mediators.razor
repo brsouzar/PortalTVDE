@@ -1,0 +1,240 @@
+﻿@page "/admin/mediators"
+@using PortalTVDE.Client.Services.Interfaces
+@using PortalTVDE.Shared.ModelsDTOs
+@inject IMediatorClientService MediatorService
+
+<div class="content-box">
+    <h2 class="mb-4">Administração de Mediators</h2>
+
+    <div class="mb-4 d-flex gap-2">
+        <input placeholder="Filtrar por nome" @bind="filterName" class="form-control" />
+        <select @bind="filterTier" class="form-select">
+            <option value="">Todos Tiers</option>
+            @foreach (var tier in Enum.GetValues<PortalTVDE.Shared.Enums.MediatorTier>())
+            {
+                <option value="@tier">@tier</option>
+            }
+        </select>
+        <button class="btn btn-primary" @onclick="LoadMediators">Filtrar</button>
+    </div>
+
+    <div class="table-responsive mb-4">
+        <table class="table table-striped table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th style="width: 150px;">Tier</th>
+                    <th style="width: 150px;">Comissão</th>
+                    <th style="width: 100px;" class="text-center">Status</th>
+                    <th style="width: 100px;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (mediators?.Items != null)
+                {
+                    @foreach (var m in mediators.Items)
+                    {
+                        <tr>
+                            <td>@m.Id</td>
+                            <td>@m.Name</td>
+                            <td>@m.Email</td>
+                            <td>
+                                <select @bind="m.Tier" @bind:after="async () => await UpdateMediator(m)" class="form-select form-select-sm">
+                                    @foreach (var tier in Enum.GetValues<PortalTVDE.Shared.Enums.MediatorTier>())
+                                    {
+                                        <option value="@tier">@tier</option>
+                                    }
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" step="0.01" min="0.01" max="0.50"
+                                       @bind="m.CommissionRate" @bind:after="async () => await UpdateMediator(m)" class="form-control form-control-sm" />
+                            </td>
+                            <td class="text-center">
+                                @if (m.IsUpdating)
+                                {
+                                    <span class="text-primary">Atualizando...</span>
+                                }
+                                else if (m.UpdateSuccess.HasValue)
+                                {
+                                    <span class="@((m.UpdateSuccess.Value) ? "text-success" : "text-danger")">
+                                        @(m.UpdateSuccess.Value ? "✓ Sucesso" : "✗ Falha")
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-danger btn-sm">Apagar</button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4 d-flex gap-2 align-items-center">
+        <button class="btn btn-outline-secondary" @onclick="PreviousPage" disabled="@(!CanPrevious)">Anterior</button>
+        <span class="text-secondary">Página @returnPage / @TotalPages</span>
+        <button class="btn btn-outline-secondary" @onclick="NextPage" disabled="@(!CanNext)">Próxima</button>
+    </div>
+
+    <hr class="my-4" />
+
+    <h3 class="mb-3">Adicionar Mediator</h3>
+    <div class="form-section">
+        <div class="form-group mb-3">
+            <input placeholder="Nome" @bind="newMediator.Name" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <input placeholder="Email" @bind="newMediator.Email" type="email" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <select @bind="newMediator.Tier" class="form-select">
+                <option disabled selected value="">Selecione o Tier</option>
+                @foreach (var tier in Enum.GetValues<PortalTVDE.Shared.Enums.MediatorTier>())
+                {
+                    <option value="@tier">@tier</option>
+                }
+            </select>
+        </div>
+        <div class="form-group mb-3">
+            <input type="number" step="0.01" min="0.01" max="0.50" placeholder="Comissão (Ex: 0.10)" @bind="newMediator.CommissionRate" class="form-control" />
+        </div>
+        <button class="btn btn-success w-100 mt-2" @onclick="CreateMediator">Adicionar</button>
+    </div>
+</div>
+
+<style>
+    /* Estilo para a caixa de formulário de Adição/Edição, copiado de Vehicles.razor */
+    .form-section {
+        max-width: 450px;
+        padding: 25px;
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: rgba(0,0,0,0.15) 0px 4px 12px;
+        margin-top: 20px;
+    }
+</style>
+
+@code {
+    // ... (O Bloco @code permanece inalterado, exceto pela adição do método DeleteMediator) ...
+
+    private PaginatedResultDto<MediatorDtoExtended> mediators = new();
+    private string? filterName;
+    private PortalTVDE.Shared.Enums.MediatorTier? filterTier;
+    private int returnPage = 1;
+    private int pageSize = 10;
+
+    private MediatorCreateDto newMediator = new MediatorCreateDto();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMediators();
+    }
+
+    private async Task LoadMediators()
+    { try
+        {
+            var query = new MediatorQueryDto
+            {
+                Name = filterName,
+                Tier = filterTier,
+                Page = returnPage,
+                PageSize = pageSize
+            };
+
+            var result = await MediatorService.GetMediatorsAsync(query);
+
+            mediators = new PaginatedResultDto<MediatorDtoExtended>
+            {
+                Items = result.Items.Select(m => new MediatorDtoExtended(m)).ToList(),
+                TotalCount = result.TotalCount
+            };
+        }
+        catch (System.Net.Http.HttpRequestException ex)
+        {
+            
+            Console.WriteLine($"Erro ao carregar Mediators. Falha de comunicação ou autorização: {ex.Message}");
+            // 💡 Aqui você pode redirecionar o usuário para a página de login
+            // NavigationManager.NavigateTo("/login", forceLoad: true);
+        }
+       
+    }
+
+    private async Task UpdateMediator(MediatorDtoExtended m)
+    {
+        try
+        {
+            m.IsUpdating = true;
+            m.UpdateSuccess = null;
+
+            var dto = new MediatorUpdateDto
+            {
+                Id = m.Id,
+                Tier = m.Tier,
+                CommissionRate = m.CommissionRate
+            };
+            await MediatorService.UpdateMediatorAsync(dto);
+
+            m.UpdateSuccess = true;
+        }
+        catch
+        {
+            m.UpdateSuccess = false;
+        }
+        finally
+        {
+            m.IsUpdating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CreateMediator()
+    {
+        await MediatorService.CreateMediatorAsync(newMediator);
+        newMediator = new MediatorCreateDto();
+        returnPage = 1;
+        await LoadMediators();
+    }
+
+    // // ADICIONE ESTE MÉTODO PARA SER CHAMADO PELO BOTÃO APAGAR
+    // private async Task DeleteMediator(int id)
+    // {
+    //     await MediatorService.DeleteMediatorAsync(id);
+    //     await LoadMediators();
+    // }
+
+    private int TotalPages => (int)Math.Ceiling((double)(mediators?.TotalCount ?? 0) / pageSize);
+    private bool CanPrevious => returnPage > 1;
+    private bool CanNext => returnPage < TotalPages;
+
+    private async Task PreviousPage()
+    {
+        if (CanPrevious) returnPage--;
+        await LoadMediators();
+    }
+
+    private async Task NextPage()
+    {
+        if (CanNext) returnPage++;
+        await LoadMediators();
+    }
+
+    // Classe estendida para feedback visual
+    public class MediatorDtoExtended : MediatorDto
+    {
+        public MediatorDtoExtended(MediatorDto m)
+        {
+            Id = m.Id;
+            Name = m.Name;
+            Email = m.Email;
+            Tier = m.Tier;
+            CommissionRate = m.CommissionRate;
+        }
+
+        public bool IsUpdating { get; set; } = false;
+        public bool? UpdateSuccess { get; set; } = null;
+    }
+}
