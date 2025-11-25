@@ -77,7 +77,10 @@ namespace PortalTVDE.Server.Services
                 Name = dto.Name!,
                 Tier = dto.Tier,
                 CommissionRate = dto.CommissionRate,
-                Email = dto.Email!
+                Email = dto.Email!,
+                IsDeleted = false,
+                CreatedAt = DateTime.UtcNow,
+                RowVersion = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 }
             };
 
             _context.Mediators.Add(mediator);

@@ -100,7 +100,10 @@ namespace PortalTVDE.Server.Services
                 Model = dto.Model,
                 PowerKW = dto.PowerKW,
                 Year = dto.Year,
-                Usage = dto.Usage
+                Usage = dto.Usage,
+                IsDeleted = false,
+                CreatedAt = DateTime.UtcNow,
+                RowVersion = new byte[0]
             };
 
             _db.Vehicles.Add(v);

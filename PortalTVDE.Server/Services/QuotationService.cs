@@ -18,7 +18,8 @@ public class QuotationService : IQuotationService
     {
         var client = await _db.Clients.FindAsync(request.ClientId)
                      ?? throw new Exception("Cliente não encontrado");
-        var vehicle = await _db.Vehicles.FindAsync(request.VehicleId)
+
+       var vehicle = await _db.Vehicles.FindAsync(request.VehicleId)
                       ?? throw new Exception("Veículo não encontrado");
 
         int age = DateTime.Today.Year - client.BirthDate.Year;
@@ -53,15 +54,15 @@ public class QuotationService : IQuotationService
             Number = quoteNumber,
             ClientId = request.ClientId,
             VehicleId = request.VehicleId,
-            MediatorId = request.MediatorId ?? 1002,
+            MediatorId = request.MediatorId,
             BasePremium = basePremium,
             Surcharges = surcharges + optionalCovers,
             Discounts = discounts,
             TotalPremium = totalPremium,
             Status = "Priced", // O status é "Priced" após o cálculo do preço
-            // Você precisará mapear os CoverageItems se forem persistidos na cotação
-            // Ex: newQuote.CoverageItems = MapCoverageItems(request);
-            IsDeleted = false
+               //newQuote.CoverageItems = MapCoverageItems(request);
+            IsDeleted = false,
+            RowVersion = new byte[0]
         };
 
         _db.Quotes.Add(newQuote);

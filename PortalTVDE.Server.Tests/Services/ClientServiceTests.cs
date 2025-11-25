@@ -20,12 +20,10 @@ public class ClientServiceTests
         return dbContext;
     }
 
-    // --- TESTES PARA GETCLIENTSASYNC (FILTROS) ---
-
     [Fact]
     public async Task GetClientsAsync_ShouldFilterByName()
     {
-        // ARRANGE
+       
         var dbName = "FilterByNameDB";
         using var dbContext = GetDbContext(dbName);
 
@@ -58,8 +56,6 @@ public class ClientServiceTests
         Assert.Equal(2, result.TotalCount);
         Assert.True(result.Items.All(c => c.Name.Contains("Smith")));
     }
-
-    // --- TESTES PARA GETBYIDASYNC ---
 
     [Fact]
     public async Task GetByIdAsync_ShouldReturnClient_WhenIdExists()
@@ -100,6 +96,4 @@ public class ClientServiceTests
         // ASSERT
         Assert.Null(result); // Esperamos null
     }
-
-    // Você deve criar testes para CreateAsync, UpdateAsync, DeleteAsync, e os outros filtros (Email, NIF, Paginação)
 }

@@ -13,35 +13,32 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7131/") });
-
 builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<CustomAuthStateProvider>());
 
 builder.Services.AddBlazoredSessionStorage();
+
+builder.Services.AddScoped<AuthorizationHeaderHandler>();
+
+builder.Services.AddHttpClient("AuthenticatedAPI", client =>
+    client.BaseAddress = new Uri("https://localhost:7131/"))
+   .AddHttpMessageHandler<AuthorizationHeaderHandler>();
+
+builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>()
+    .CreateClient("AuthenticatedAPI"));
+
+builder.Services.AddOptions();
+builder.Services.AddAuthorizationCore();
+
 builder.Services.AddScoped<IMediatorClientService, MediatorClientService>();
 builder.Services.AddScoped<IClientAuthService, ClientAuthService>();
 builder.Services.AddScoped<IClientClientService, ClientClientService>();
 builder.Services.AddScoped<IVehicleClientService, VehicleClientService>();
 builder.Services.AddScoped<IQuoteClientService, QuoteClientService>();
 builder.Services.AddScoped<IPolicyClientService, PolicyClientService>();
-
-builder.Services.AddScoped<AuthorizationHeaderHandler>();
-
-builder.Services.AddHttpClient("AuthenticatedAPI", client =>
-    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
-    .AddHttpMessageHandler<AuthorizationHeaderHandler>();
-
-
-builder.Services.AddOptions();
-builder.Services.AddAuthorizationCore();
-
 builder.Services.AddScoped<IClientAuthService, ClientAuthService>();
-
-
-builder.Services.AddScoped<JwtAuthorizationMessageHandler>();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddApiAuthorization(); 
 

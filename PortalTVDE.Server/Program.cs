@@ -251,6 +251,6 @@ static async Task RunUserSetupAsync(WebApplication app)
         }
     }
 
-    // ... (código do app.Run())
+
 }
 
