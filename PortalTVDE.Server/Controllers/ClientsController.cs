@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace PortalTVDE.Server.Controllers
 {
-  
 
+    //[Authorize]
     [ApiController]
     [Route("api/clients")]
     public class ClientsController : ControllerBase

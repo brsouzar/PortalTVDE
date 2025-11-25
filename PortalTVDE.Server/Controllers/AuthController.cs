@@ -6,6 +6,7 @@ using PortalTVDE.Shared.ModelsDTOs;
 
 namespace PortalTVDE.Server.Controllers
 {
+    //[Authorize(Roles ="admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase

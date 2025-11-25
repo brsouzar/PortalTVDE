@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PortalTVDE.Server.Services.Interfaces;
 using PortalTVDE.Shared.ModelsDTOs;
 
 namespace PortalTVDE.Server.Controllers
 {
+   // [Authorize]
     [ApiController]
     [Route("api/vehicles")]
     public class VehiclesController : ControllerBase

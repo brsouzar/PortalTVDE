@@ -1,8 +1,10 @@
 ﻿// PortalTVDE.Server.Controllers.QuotesController.cs
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PortalTVDE.Server.Services.Interfaces;
 using PortalTVDE.Shared.ModelsDTOs;
 
+//[Authorize]
 [ApiController]
 [Route("api/quotes")]
 public class QuotesController : ControllerBase
