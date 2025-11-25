@@ -94,3 +94,65 @@ O serviço **`AuthService`** contém o método privado `GenerateJwtToken` que:
 1.  O Cliente chama o método **`ClientAuthService.Logout`**.
 2.  O token JWT é **removido** do **Session Storage**.
 3.  O estado de autenticação é resetado (`MarkUserAsLoggedOut`), e o `HttpClient` tem seu cabeçalho de autorização removido, encerrando a sessão.
+
+
+# FUNCIONALIDADES DO SERVIÇO CLIENTE DE COTAÇÕES (`QuoteClientService`) 🤝
+
+Este documento descreve as funcionalidades de comunicação do lado do **Cliente (Blazor WebAssembly)** com o servidor (API) para o módulo de Cotações (Quotes). Este serviço atua como uma ponte que envia dados do usuário para o *backend* e trata as respostas, incluindo erros.
+
+---
+
+## 1. Módulos e Componentes Envolvidos
+
+| Componente | Função |
+| :--- | :--- |
+| **`QuoteClientService`** | Serviço injetável no Blazor (Client) que usa o `HttpClient` (autenticado) para fazer chamadas à API. |
+| **`HttpClient _http`** | A instância injetada do cliente HTTP (configurada para incluir o token de autorização). |
+| **`QuotePriceRequestDto`** | DTO de dados de entrada para calcular o preço. |
+| **`QuotePricedDto`** | DTO de dados de saída (resultado do cálculo do preço). |
+| **`QuoteBindRequestDto`** | DTO de dados de entrada para emitir a apólice. |
+| **`BindResultDto`** | DTO de dados de saída (ID da nova apólice). |
+
+---
+
+## 2. Funcionalidade: CALCULAR PREÇO (`PriceQuoteAsync`)
+
+Esta função envia os dados de risco fornecidos pelo Mediador ao servidor para precificação.
+
+### Fluxo de Comunicação:
+
+1.  **Requisição:** Envia uma requisição **`POST`** com o objeto `QuotePriceRequestDto` (contendo ClientId, VehicleId, etc.) serializado como JSON para o endpoint: **`api/quotes/price`**.
+2.  **Tratamento de Sucesso (200 OK):**
+    * Se a resposta for bem-sucedida, o conteúdo é desserializado para o objeto **`QuotePricedDto`** (contendo o prêmio total e o detalhamento) e retornado.
+3.  **Tratamento de Falha (4xx/5xx):**
+    * Se o servidor retornar um código de falha (ex: `400 Bad Request` devido a uma regra de subscrição não atendida), o serviço tenta ler a **mensagem de erro** do corpo da resposta (via `ErrorResponse`).
+    * É lançada uma **`ApplicationException`** no Cliente, que permite que a UI exiba a mensagem de erro específica do negócio ("Cliente deve ter pelo menos 18 anos", por exemplo).
+
+---
+
+## 3. Funcionalidade: EMITIR APÓLICE (`BindQuoteAsync`)
+
+Esta função é usada para converter uma cotação precificada em uma apólice de seguro ativa.
+
+### Fluxo de Comunicação:
+
+1.  **Requisição:** Envia uma requisição **`POST`** com o objeto `QuoteBindRequestDto` (contendo `QuoteId` e `MediatorId`) para o endpoint específico da cotação: **`api/quotes/{QuoteId}/bind`**.
+2.  **Tratamento de Sucesso (200 OK):**
+    * Se a emissão for bem-sucedida, o servidor retorna o **`BindResultDto`**, que contém o **`PolicyId`** da nova apólice.
+3.  **Tratamento de Falha (4xx/5xx):**
+    * Se houver falha na emissão (ex: cotação não encontrada, erro de servidor), o serviço lê a mensagem de erro do `ErrorResponse`.
+    * É lançada uma **`ApplicationException`** com a mensagem do servidor, permitindo que o Mediador veja o motivo da falha na UI.
+
+---
+
+## 4. Funcionalidade: HISTÓRICO DE COTAÇÕES (`GetQuotesByClientAsync`)
+
+Esta função permite que a aplicação do Cliente recupere o histórico de cotações para um cliente específico.
+
+### Fluxo de Comunicação:
+
+1.  **Requisição:** Envia uma requisição **`GET`** para o endpoint que inclui o ID do cliente: **`api/quotes/client/{clientId}`**.
+2.  **Tratamento de Sucesso (200 OK):**
+    * Se a busca for bem-sucedida, o conteúdo é desserializado para uma **lista de `QuoteDto`** (DTOs de cotações simplificadas) e retornado.
+3.  **Tratamento de Falha (4xx/5xx):**
+    * Se houver falha na busca, é lançada uma **`ApplicationException`** com a mensagem de erro do servidor.
