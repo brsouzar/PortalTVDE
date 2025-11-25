@@ -16,6 +16,7 @@ Mediação “Auto TVDE Lite”
       Auth: JWT (roles Admin, Mediator) 
 
       Testes: xUnit 
+	  Banco de Dados: Sql Sever 2025
 	  
 	  
 	  Descrição das Telas.
