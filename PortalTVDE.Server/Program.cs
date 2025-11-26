@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
+using Microsoft.OpenApi.Models;
 using PortalTVDE.Server.Data;
 using PortalTVDE.Server.Models;
 using PortalTVDE.Server.Services;
@@ -51,7 +50,7 @@ builder.Services.AddCors(options =>
     {
         builder.WithOrigins("http://localhost:7131");
         builder.WithMethods("GET", "POST", "PUT", "DELETE");
-        builder.WithHeaders("Content-Type", "Accept");
+        builder.WithHeaders("Content-Type", "Accept", "Authorization");
     });
 });
 
@@ -99,7 +98,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("AdminPolicy", policy => policy.RequireRole("admin"));
     options.AddPolicy("MediatorPolicy", policy => policy.RequireRole("Mediator"));
 });
 
@@ -127,10 +126,24 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer", // Define o esquema de autenticação como Bearer
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Insira o token JWT no campo (Exemplo: Bearer seu.token.aqui)"
-    });
+        Description = "Token Access"
+    }); 
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                          new OpenApiSecurityScheme
+                          {
+                              Reference = new OpenApiReference
+                              {
+                                  Type = ReferenceType.SecurityScheme,
+                                  Id = "Bearer"
+                              }
+                          },
+                         new string[] {}
+                    }
+                });
 
-  
+
 });
 // FIM DO NOVO BLOCO
 
@@ -166,6 +179,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseCors("MyPolicy");
+
 app.UseStatusCodePages(async context =>
 {
     // Verifica se a requisição é para a API (que espera JSON)
@@ -184,7 +199,6 @@ app.UseAuthorization();
 app.MapControllers(); 
 app.MapRazorPages();
 
-app.UseCors("MyPolicy");
 // Fallback para o Blazor Client
 app.MapFallbackToFile("index.html");
 
@@ -207,7 +221,7 @@ static async Task RunUserSetupAsync(WebApplication app)
             // Resolve o serviço necessário dentro do escopo
             var userSetupService = services.GetRequiredService<UserSetupService>();
 
-            // --- SUAS VARIÁVEIS CONFIGURADAS ---
+            // --- VARIÁVEIS CONFIGURADAS ---
             const string targetEmail = "mediator@mds.pt";
             const string correctPassword = "Passw0rd#";
             // ------------------------------------
@@ -238,7 +252,7 @@ static async Task RunUserSetupAsync(WebApplication app)
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
         // Lista de roles que você precisa
-        string[] roleNames = { "admin", "Mediator" };
+        string[] roleNames = { "admin", "Mediator", "Partner" };
 
         foreach (var roleName in roleNames)
         {

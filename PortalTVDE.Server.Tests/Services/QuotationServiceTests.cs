@@ -128,7 +128,7 @@ namespace PortalTVDE.Server.Tests.Services
             SeedQuotationData(dbContext);
             var service = new QuotationService(dbContext);
 
-            var request = new QuotePriceRequestDto { ClientId = 1, VehicleId = 10, NcbYears = 2005};
+            var request = new QuotePriceRequestDto { ClientId = 1, VehicleId = 999 };
 
             // ACT & ASSERT
             var exception = await Assert.ThrowsAsync<Exception>(() => service.PriceQuoteAsync(request));

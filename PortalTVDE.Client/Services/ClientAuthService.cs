@@ -41,31 +41,69 @@ namespace PortalTVDE.Client.Services
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync();
-                var errorResponse = JsonSerializer.Deserialize<ErrorResponseDto>(errorBody,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                string errorMessage;
+                try
+                {
+                    var errorResponse = JsonSerializer.Deserialize<ErrorResponseDto>(errorBody,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                        errorMessage = errorResponse?.Message ?? "Resposta de erro JSON inesperada.";
+                }  
+                catch (JsonException)
+                {
+                    if (errorBody.StartsWith('<'))
+                    {
+                        errorMessage = $"Erro de comunicação. O servidor retornou HTML. Status: {response.StatusCode}.";
+                    }
+                    else
+                    {
+                      errorMessage = $"Erro de login (Status {response.StatusCode}). Detalhes: {errorBody}";
+                    }
+                }
+                catch (Exception ex)
+                {
+                 
+                    errorMessage = $"Ocorreu um erro interno: {ex.Message}";
+                }
 
                 return new LoginResult
                 {
                     Successful = false,
-                    ErrorMessage = errorResponse?.Message ?? "Erro desconhecido ao tentar fazer login."
+                    ErrorMessage = errorMessage
                 };
             }
 
-            var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponseDto>(
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-            if (loginResponse != null && !string.IsNullOrEmpty(loginResponse.Token))
+            try
             {
-                // Armazena token na sessão
-                await _sessionStorage.SetItemAsync(AuthTokenKey, loginResponse.Token);
+                var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponseDto>(
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                // Atualiza AuthenticationStateProvider
-                ((CustomAuthStateProvider)_authenticationStateProvider)
-                    .MarkUserAsAuthenticated(loginResponse.Token);
+                if (loginResponse != null && !string.IsNullOrEmpty(loginResponse.Token))
+                {
+                    // Armazena token na sessão
+                    await _sessionStorage.SetItemAsync(AuthTokenKey, loginResponse.Token);
 
-                
-                return new LoginResult { Successful = true, UserInfo = loginResponse };
+                    // Atualiza AuthenticationStateProvider
+                    ((CustomAuthStateProvider)_authenticationStateProvider)
+                        .MarkUserAsAuthenticated(loginResponse.Token);
+
+
+                    return new LoginResult { Successful = true, UserInfo = loginResponse };
+                }
+
             }
+            catch (JsonException ex)
+            {
+                return new LoginResult
+                {
+                    Successful = false,
+                    ErrorMessage = $"Erro ao processar a resposta do servidor. A estrutura do JSON de sucesso está inválida: {ex.Message}"
+                };
+            }
+
+
+          
 
             return new LoginResult { Successful = false, ErrorMessage = "Resposta do login inválida." };
         }
