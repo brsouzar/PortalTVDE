@@ -83,6 +83,7 @@ public class QuotationService : IQuotationService
     public async Task<int> BindQuoteAsync(QuoteBindRequestDto request)
     {
         // 1. Busque a cotação (Quote)
+        var qoutes = await _db.Quotes.ToListAsync();
         var quote = await _db.Quotes
             .FirstOrDefaultAsync(q => q.Id == request.QuoteId);
 
@@ -105,7 +106,9 @@ public class QuotationService : IQuotationService
             EffectiveTo = DateTime.Today.AddYears(1),
             TotalPremium = 1200.00m, // Exemplo
             Commission = 120.00m,   // Exemplo
-            IssuedAt = DateTime.UtcNow
+            IssuedAt = DateTime.UtcNow,
+            IsDeleted = false,
+            RowVersion = new byte[0]
         };
 
         // 4. Salvar as alterações

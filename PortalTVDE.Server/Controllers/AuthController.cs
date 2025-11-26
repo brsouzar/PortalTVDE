@@ -44,7 +44,8 @@ namespace PortalTVDE.Server.Controllers
 
             // Verifica se o usuário tem a role de Admin ou Mediator (os únicos autorizados a usar o Portal)
             if (!response.Roles.Any(r => r.Equals("admin", StringComparison.OrdinalIgnoreCase) ||
-                                         r.Equals("Mediator", StringComparison.OrdinalIgnoreCase)))
+                                         r.Equals("Mediator", StringComparison.OrdinalIgnoreCase) ||
+                                          r.Equals("Partner", StringComparison.OrdinalIgnoreCase)))
             {
                 // Usuário autenticado, mas não autorizado a usar o Portal
                 _logger.LogWarning("Usuário {Email} logou mas não possui roles de Admin ou Mediator.", request.Email);

@@ -40,6 +40,7 @@ builder.Services.AddScoped<IQuoteClientService, QuoteClientService>();
 builder.Services.AddScoped<IPolicyClientService, PolicyClientService>();
 builder.Services.AddScoped<IClientAuthService, ClientAuthService>();
 builder.Services.AddCascadingAuthenticationState();
+
 builder.Services.AddApiAuthorization(); 
 
 await builder.Build().RunAsync();
